@@ -1,0 +1,24 @@
+/* page */
+body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #0b1020; color: #eef1f6; }
+.app { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+h1 { font-weight: 700; margin-bottom: 12px; }
+.topbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+
+/* board must have width or it won’t render */
+.board { width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,.4); border-radius: 12px; overflow: hidden; }
+
+/* buttons */
+button { background: #1e2a4a; color: #eef1f6; border: 1px solid #2b3b66; padding: 6px 12px; border-radius: 10px; cursor: pointer; }
+button:hover { background: #253359; }
+#status { margin-left: auto; opacity: .85; }
+
+/* hot/cold chip */
+.chip { position: fixed; right: 24px; bottom: 24px; background: #121a33; border: 1px solid #2b3b66; border-radius: 16px; padding: 12px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.4); min-width: 260px; }
+.chip.hidden { display: none; }
+.chip.hot { border-color: #2ecc71; }
+.chip.warm { border-color: #f1c40f; }
+.chip.cool { border-color: #3498db; }
+.chip.cold { border-color: #e67e22; }
+.chip.freezing { border-color: #e74c3c; }
+#hcLabel { font-weight: 700; margin-right: 8px; }
+.chip .actions { display: flex; gap: 8px; margin-top: 8px; }

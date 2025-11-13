@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Human–AI Chess (Hot/Cold)</title>
+
+  <!-- jQuery (LOCAL - now works) -->
+  <script src="vendor/jquery.min.js"></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="vendor/chessboard.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <h1>Human–AI Chess (Hot/Cold)</h1>
+
+    <div class="topbar">
+      <button id="resetBtn">New Game</button>
+      <label>
+        <input type="checkbox" id="subtleMode" checked /> Subtle mode
+      </label>
+      <button id="revealBtn">Reveal Best Move</button>
+      <span id="status"></span>
+    </div>
+
+    <div id="board" class="board"></div>
+
+    <!-- Hot/Cold chip -->
+    <div id="hotcold" class="chip hidden">
+      <span id="hcLabel">Hot</span>
+      <span id="hcDetail"></span>
+      <div class="actions">
+        <button id="confirmMove">Play move</button>
+        <button id="cancelMove">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <<!-- jQuery (local) -->
+<script src="vendor/jquery.min.js"></script>
+
+<!-- Chess.js -->
+<script src="vendor/chess.min.js"></script>
+
+<!-- Chessboard.js -->
+<script src="vendor/chessboard.js"></script>
+
+<!-- Your app -->
+<script src="app.js" defer></script>
+</body>
+</html>

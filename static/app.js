@@ -142,7 +142,7 @@ function init() {
   board = Chessboard(boardEl, {
     draggable: true,
     position: 'start',
-    pieceTheme: '/static/img/chesspieces/maestro/{piece}.svg',
+    pieceTheme: '/img/chesspieces/maestro/{piece}.svg',
 
 
     onDragStart,

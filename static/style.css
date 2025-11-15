@@ -1,24 +1,308 @@
-/* page */
-body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #0b1020; color: #eef1f6; }
-.app { max-width: 960px; margin: 24px auto; padding: 0 16px; }
-h1 { font-weight: 700; margin-bottom: 12px; }
-.topbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+/* --------- Base --------- */
 
-/* board must have width or it won’t render */
-.board { width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,.4); border-radius: 12px; overflow: hidden; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
-/* buttons */
-button { background: #1e2a4a; color: #eef1f6; border: 1px solid #2b3b66; padding: 6px 12px; border-radius: 10px; cursor: pointer; }
-button:hover { background: #253359; }
-#status { margin-left: auto; opacity: .85; }
+html, body {
+  margin: 0;
+  padding: 0;
+}
 
-/* hot/cold chip */
-.chip { position: fixed; right: 24px; bottom: 24px; background: #121a33; border: 1px solid #2b3b66; border-radius: 16px; padding: 12px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.4); min-width: 260px; }
-.chip.hidden { display: none; }
-.chip.hot { border-color: #2ecc71; }
-.chip.warm { border-color: #f1c40f; }
-.chip.cool { border-color: #3498db; }
-.chip.cold { border-color: #e67e22; }
-.chip.freezing { border-color: #e74c3c; }
-#hcLabel { font-weight: 700; margin-right: 8px; }
-.chip .actions { display: flex; gap: 8px; margin-top: 8px; }
+body {
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #111827, #020617);
+  color: #e5e7eb;
+}
+
+/* Hide utility */
+.hidden {
+  display: none !important;
+}
+
+/* Shell centers content */
+.shell {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 2.5rem;
+}
+
+/* Screens */
+
+.screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* Landing */
+
+.landing-screen {
+  align-items: flex-start;
+}
+
+/* >>> updated title style <<< */
+.app-title {
+  font-size: clamp(2.6rem, 4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.5rem;
+  background: linear-gradient(135deg, #ffffff, #c4f1ff, #22c55e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin: 0 0 1.5rem;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.mode-card {
+  padding: 1.1rem 1.2rem 1.3rem;
+  border-radius: 1.1rem;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mode-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.mode-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+/* Buttons */
+
+.primary-btn,
+.secondary-btn,
+.ghost-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.7rem 1.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(22, 163, 74, 0.4);
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 35px rgba(22, 163, 74, 0.55);
+}
+
+.secondary-btn {
+  background: #020617;
+  color: #e5e7eb;
+  border: 1px solid #4b5563;
+}
+
+.secondary-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ghost-btn {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #4b5563;
+}
+
+/* >>> new back button style (uses ghost-btn base) <<< */
+.back-btn {
+  margin-right: 0.75rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.back-btn:hover {
+  transform: translateY(-1px);
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Difficulty buttons */
+
+.difficulty-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.diff-btn {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.8rem;
+  padding: 0.45rem 0.4rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s;
+}
+
+.diff-btn:hover {
+  transform: translateY(-1px);
+}
+
+.diff-btn.active {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* --------- Game screen --------- */
+
+.game-screen {
+  align-items: flex-start;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.9rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.logo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #22c55e;
+}
+
+.brand-name {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.status-text {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.main-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 460px) minmax(220px, 1fr);
+  gap: 1.75rem;
+  align-items: flex-start;
+}
+
+/* Board section */
+
+.board-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+#board {
+  width: min(80vw, 460px);
+  /* height will be set by chessboard.js */
+  margin: 0 auto 0.4rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.mode-info-text {
+  font-size: 0.82rem;
+  opacity: 0.8;
+}
+
+/* Chip (hot/warm/cool/etc.) */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+/* Side panel */
+
+.side-panel {
+  padding: 1.1rem 1rem 1.3rem;
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.side-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.hint-text {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* Mobile */
+
+@media (max-width: 768px) {
+  .shell {
+    padding-top: 1.25rem;
+  }
+
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #board {
+    width: 100%;
+    max-width: 420px;
+  }
+}

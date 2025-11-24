@@ -1,112 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Chess AI Support</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8" />
+    <title>Chess AI Support</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Vendor styles -->
-  <link rel="stylesheet" href="vendor/chessboard.css" />
-  <!-- Your styles -->
-  <link rel="stylesheet" href="style.css" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="vendor/chessboard.css" />
 </head>
 <body>
-  <!-- Landing screen -->
-  <div id="landing" class="screen landing-screen">
-    <div class="shell">
-      <h1 class="app-title">Chess AI Support</h1>
-      <p class="subtitle">
-        Choose how you want to play and get engine-powered feedback on every move.
-      </p>
 
-      <div class="mode-grid">
-        <!-- VS COMPUTER -->
-        <section class="mode-card">
-          <h2>Play vs Computer</h2>
-          <p>Pick a difficulty and challenge the engine with live analysis.</p>
+    <!-- Landing Screen -->
+    <section id="landing" class="screen landing-screen">
+        <div class="shell">
+            <h1 class="app-title">Chess AI Support</h1>
+            <p class="subtitle">Play with real-time engine feedback and coaching tools.</p>
 
-          <div class="difficulty-row">
-            <button class="diff-btn active" data-diff="easy">Easy</button>
-            <button class="diff-btn" data-diff="medium">Medium</button>
-            <button class="diff-btn" data-diff="hard">Hard</button>
-          </div>
+            <div class="mode-grid">
 
-          <button id="startVsComputer" class="primary-btn full-width">
-            Start vs Computer
-          </button>
-        </section>
+                <!-- VS COMPUTER -->
+                <div class="mode-card">
+                    <h2>Play vs Computer</h2>
+                    <p>Select computer difficulty:</p>
 
-        <!-- LOCAL HUMAN VS HUMAN (WITH AI HELP) -->
-        <section class="mode-card">
-          <h2>Play vs Human (local)</h2>
-          <p>
-            Two players on the same board, with AI evaluating moves and suggesting improvements.
-          </p>
+                    <div class="difficulty-row">
+                        <button class="diff-btn active" data-diff="easy">Easy</button>
+                        <button class="diff-btn" data-diff="medium">Medium</button>
+                        <button class="diff-btn" data-diff="hard">Hard</button>
+                    </div>
 
-          <button id="startHumanLocal" class="secondary-btn full-width">
-            Start local game
-          </button>
-        </section>
-      </div>
-    </div>
-  </div>
+                    <button id="startVsComputer" class="primary-btn full-width" style="margin-top: 0.8rem;">
+                        Start Game
+                    </button>
+                </div>
 
-  <!-- Main game screen -->
-  <div id="gameScreen" class="screen game-screen hidden">
-    <div class="shell">
-      <header class="top-bar">
-        <button id="backBtn" class="ghost-btn back-btn">← Back</button>
-      
-        <div class="brand">
-          <span class="logo-dot"></span>
-          <span class="brand-name">Chess AI Support</span>
+                <!-- LOCAL 2-PLAYER -->
+                <div class="mode-card">
+                    <h2>Play Locally (2-Player)</h2>
+                    <p>Both players get AI suggestions & evaluation.</p>
+
+                    <button id="startHumanLocal" class="secondary-btn full-width" style="margin-top: 0.8rem;">
+                        Start 2-Player Game
+                    </button>
+                </div>
+            </div>
         </div>
-      
-        <div id="status" class="status-text">White to move</div>
-      </header>
-      
+    </section>
 
-      <main class="main-layout">
-        <section class="board-section">
-          <div id="board"></div>
+    <!-- Game Screen -->
+    <section id="gameScreen" class="screen game-screen hidden">
+        <div class="shell">
 
-          <div id="hotcold" class="chip hidden">
-            <span id="hcLabel"></span>
-            <span id="hcDetail"></span>
-          </div>
+            <!-- Top bar -->
+            <header class="top-bar">
+                <button id="backBtn" class="ghost-btn back-btn">← Back</button>
 
-          <div class="controls">
-            <button id="confirmMove" class="primary-btn">Play move</button>
-            <button id="cancelMove" class="secondary-btn">Cancel</button>
-            <button id="resetBtn" class="ghost-btn">Reset</button>
-          </div>
+                <div class="brand">
+                    <span class="logo-dot"></span>
+                    <span class="brand-name">Chess AI Support</span>
+                </div>
 
-          <label class="option-row">
-            <input type="checkbox" id="subtleMode" />
-            Subtle feedback only
-          </label>
+                <div id="status" class="status-text">White to move</div>
+            </header>
 
-          <p id="modeInfo" class="mode-info-text"></p>
-        </section>
+            <!-- Game over banner -->
+            <div id="gameOverBox" class="game-over-box hidden">
+                <span id="gameOverText"></span>
+            </div>
 
-        <aside class="side-panel">
-          <h2>Tools</h2>
-          <button id="revealBtn" class="primary-btn full-width">
-            Show engine suggestion
-          </button>
-          <p class="hint-text">
-            Drag a move on the board to get a “hot / warm / cool / cold / freezing”
-            evaluation, then click <strong>Play move</strong> to commit it. Works in both modes.
-          </p>
-        </aside>
-      </main>
-    </div>
-  </div>
+            <div class="main-layout">
 
-  <!-- Scripts at the end so DOM exists -->
-  <script src="vendor/jquery.min.js"></script>
-  <script src="vendor/chess.min.js"></script>
-  <script src="vendor/chessboard.js"></script>
-  <script src="app.js"></script>
+                <!-- Board Section -->
+                <section class="board-section">
+                    <div id="board"></div>
+
+                    <!-- Evaluation chip -->
+                    <div id="hotcold" class="chip hidden">
+                        <span id="hcLabel"></span>
+                        <span id="hcDetail"></span>
+                    </div>
+
+                    <!-- Explanation text -->
+                    <p id="explanation" class="explanation-text"></p>
+
+                    <!-- Illegal move message -->
+                    <p id="illegalMsg" class="illegal-msg"></p>
+
+                    <!-- Controls -->
+                    <div class="controls">
+                        <button id="confirmMove" class="primary-btn">Play move</button>
+                        <button id="cancelMove" class="secondary-btn">Cancel</button>
+                        <button id="resetBtn" class="ghost-btn">Reset</button>
+                    </div>
+
+                    <label class="option-row">
+                        <input type="checkbox" id="subtleMode" />
+                        Subtle feedback only
+                    </label>
+
+                    <label class="option-row">
+                        <input type="checkbox" id="heatmapToggle" />
+                        Show mistake heatmap
+                    </label>
+
+                    <p id="modeInfo" class="mode-info-text"></p>
+                </section>
+
+                <!-- Right Panel with all extras -->
+                <section class="side-panel">
+
+                    <!-- Engine tools -->
+                    <div class="side-section">
+                        <h2>Engine Tools</h2>
+                        <p class="hint-text">Use these optional tools for extra support.</p>
+
+                        <button id="revealBtn" class="primary-btn full-width">
+                            Suggest Best Move
+                        </button>
+                    </div>
+
+                    <!-- Evaluation graph -->
+                    <div class="side-section">
+                        <h3>Who is better?</h3>
+                        <canvas id="evalChart"></canvas>
+                        <p id="evalSummary" class="eval-summary-text"></p>
+                    </div>
+
+                    <!-- Move list -->
+                    <div class="side-section">
+                        <h3>Move list</h3>
+                        <div id="moveList" class="scroll-panel"></div>
+                    </div>
+
+                    <!-- Captured pieces -->
+                    <div class="side-section">
+                        <h3>Captured pieces</h3>
+                        <div class="captures-row">
+                            <div class="captures-column">
+                                <div class="captures-label">Captured by White</div>
+                                <div id="capturedByWhite" class="captures-line"></div>
+                            </div>
+                            <div class="captures-column">
+                                <div class="captures-label">Captured by Black</div>
+                                <div id="capturedByBlack" class="captures-line"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </section>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Vendor scripts -->
+    <script src="vendor/jquery.min.js"></script>
+    <script src="vendor/chess.min.js"></script>
+    <script src="vendor/chessboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- App logic -->
+    <script src="app.js"></script>
+
 </body>
 </html>

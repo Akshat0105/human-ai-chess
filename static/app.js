@@ -16,7 +16,9 @@ let moveCount = 0;
 
 let squareMistakes = {};       // { "e4": count, ... }
 const evalCache = new Map();   // key: fen|uci|depth -> evalRes
-let moveHistory = [];          // [{ color: 'w'|'b', san, captured }]
+let moveHistory = [];          // [{ color, san, captured }]
+let clientId = null;
+let currentGameLog = null;     // { clientId, startedAt, endedAt, mode, difficulty, result, moves: [...] }
 
 // -------- EVAL BANDS (no raw cp in UI) --------
 
@@ -167,6 +169,11 @@ function hideChip() {
   chip.className = "chip";
   const expl = document.getElementById("explanation");
   if (expl) expl.textContent = "";
+
+  const fill = document.getElementById("heatFill");
+  const label = document.getElementById("heatLabel");
+  if (fill) fill.style.width = "0%";
+  if (label) label.textContent = "";
 }
 
 // Illegal move message
@@ -290,6 +297,29 @@ function updateCaptures() {
   blackEl.textContent = capturedByBlack.join(" ") || "—";
 }
 
+// -------- HEAT METER --------
+
+function updateHeatMeter(deltaCp) {
+  const fill = document.getElementById("heatFill");
+  const label = document.getElementById("heatLabel");
+  if (!fill || !label || typeof deltaCp !== "number") return;
+
+  // Clamp: 0 = perfect, -600 = terrible
+  const clamped = Math.max(-600, Math.min(0, deltaCp));
+  const ratio = 1 + clamped / 600; // 0..1 (0 = very bad, 1 = near best)
+  const pct = Math.round(ratio * 100);
+  fill.style.width = `${pct}%`;
+
+  let text;
+  if (clamped >= -50) text = "Engine-level accuracy";
+  else if (clamped >= -150) text = "Small inaccuracy";
+  else if (clamped >= -300) text = "Inaccuracy / small mistake";
+  else if (clamped >= -600) text = "Clear mistake / blunder";
+  else text = "Severe blunder";
+
+  label.textContent = text;
+}
+
 // -------- GAME OVER BANNER --------
 
 function getGameOverMessage() {
@@ -332,6 +362,30 @@ function refreshGameOverBanner() {
     textEl.textContent = "";
     box.classList.add("hidden");
   }
+}
+
+// -------- GAME LOGGING --------
+
+async function sendGameLogIfReady(resultFromEngine) {
+  if (!currentGameLog) return;
+
+  if (resultFromEngine) {
+    currentGameLog.result = resultFromEngine;
+  } else if (!currentGameLog.result && game.game_over()) {
+    currentGameLog.result = game.result();
+  }
+
+  if (!currentGameLog.result) return; // not finished yet
+
+  currentGameLog.endedAt = new Date().toISOString();
+
+  try {
+    await postJSON("/api/log-game", currentGameLog);
+  } catch (e) {
+    console.error("Failed to log game", e);
+  }
+
+  currentGameLog = null; // avoid double send
 }
 
 // -------- DRAG & DROP --------
@@ -401,6 +455,7 @@ async function onDrop(source, target) {
       : `${evalRes.message} · ${band.label}`;
 
     showChip(evalRes.bucket, label);
+    updateHeatMeter(evalRes.deltaCp);
 
     const explEl = document.getElementById("explanation");
     if (explEl) explEl.textContent = evalRes.reason || "";
@@ -433,6 +488,7 @@ async function playEngineMoveIfNeeded() {
 
     if (!bestSan) {
       refreshGameOverBanner();
+      await sendGameLogIfReady(null);
       return;
     }
 
@@ -456,6 +512,8 @@ async function playEngineMoveIfNeeded() {
     updateMoveList();
     updateCaptures();
     refreshGameOverBanner();
+
+    await sendGameLogIfReady(null);
   } catch (e) {
     console.error("Error engine move:", e);
   }
@@ -506,11 +564,19 @@ function showLandingScreen() {
   updateMoveList();
   updateCaptures();
   refreshGameOverBanner();
+  currentGameLog = null;
 }
 
 // -------- INIT --------
 
 window.addEventListener("load", () => {
+  // persistent client id
+  clientId = localStorage.getItem("chessClientId");
+  if (!clientId) {
+    clientId = "client-" + Math.random().toString(36).slice(2);
+    localStorage.setItem("chessClientId", clientId);
+  }
+
   game = new Chess();
 
   board = Chessboard("board", {
@@ -562,6 +628,16 @@ window.addEventListener("load", () => {
     updateMoveList();
     updateCaptures();
     refreshGameOverBanner();
+
+    currentGameLog = {
+      clientId,
+      startedAt: new Date().toISOString(),
+      mode: "computer",
+      difficulty,
+      result: null,
+      moves: [],
+    };
+
     showGameScreen();
   });
 
@@ -579,6 +655,16 @@ window.addEventListener("load", () => {
     updateMoveList();
     updateCaptures();
     refreshGameOverBanner();
+
+    currentGameLog = {
+      clientId,
+      startedAt: new Date().toISOString(),
+      mode: "human-local",
+      difficulty,
+      result: null,
+      moves: [],
+    };
+
     showGameScreen();
   });
 
@@ -621,6 +707,19 @@ window.addEventListener("load", () => {
         captured: pending.captured,
       });
 
+      // record in currentGameLog
+      if (currentGameLog && pending.eval) {
+        currentGameLog.moves.push({
+          moveNumber: moveHistory.length,
+          color: pending.color === "w" ? "white" : "black",
+          san: pending.san,
+          bucket: pending.eval.bucket,
+          deltaCp: pending.eval.deltaCp,
+          userCp: pending.eval.userCp,
+          bestCp: pending.eval.bestCp,
+        });
+      }
+
       game.load(res.fen);
       board.position(res.fen);
       pending = null;
@@ -628,6 +727,8 @@ window.addEventListener("load", () => {
       updateMoveList();
       updateCaptures();
       refreshGameOverBanner();
+
+      await sendGameLogIfReady(res.result);
 
       if (!game.game_over() && gameMode === "computer") {
         await playEngineMoveIfNeeded();
@@ -658,6 +759,7 @@ window.addEventListener("load", () => {
     updateMoveList();
     updateCaptures();
     refreshGameOverBanner();
+    currentGameLog = null;
   });
 
   // Suggest best move (always deep + mate info)
@@ -671,6 +773,7 @@ window.addEventListener("load", () => {
       const data = await (await fetch(url)).json();
       if (!data.bestSan) {
         refreshGameOverBanner();
+        await sendGameLogIfReady(null);
         return;
       }
 

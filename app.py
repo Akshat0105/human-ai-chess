@@ -1,6 +1,8 @@
 import os
 import atexit
 import subprocess
+import json
+from datetime import datetime
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -11,6 +13,10 @@ import chess.engine
 
 STOCKFISH_PATH = os.getenv("STOCKFISH_PATH") or "/opt/homebrew/bin/stockfish"
 STOCKFISH_THREADS = int(os.getenv("STOCKFISH_THREADS", "2"))
+
+LOG_DIR = "logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "games.jsonl")
 
 app = Flask(__name__, static_url_path="", static_folder="static")
 CORS(app)
@@ -261,6 +267,34 @@ def best_move():
             "mateIn": mate_in,
         }
     )
+
+
+@app.post("/api/log-game")
+def log_game():
+    """
+    Append one completed game log to a JSONL file.
+
+    Expected payload:
+    {
+      clientId: str,
+      startedAt: str,
+      endedAt: str,
+      mode: 'computer' | 'human-local',
+      difficulty: str,
+      result: '1-0' | '0-1' | '1/2-1/2' | None,
+      moves: [ { moveNumber, color, san, bucket, deltaCp, userCp, bestCp } ]
+    }
+    """
+    data = request.get_json(force=True)
+    data["serverReceivedAt"] = datetime.utcnow().isoformat() + "Z"
+
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(data) + "\n")
+    except Exception as e:
+        return jsonify({"error": f"Failed to write log: {e}"}), 500
+
+    return jsonify({"status": "ok"})
 
 
 # ---------------- STOCKFISH TEST + MAIN ----------------

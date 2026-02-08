@@ -2,3 +2,4 @@ flask
 flask-cors
 python-chess
 stockfish
+gunicorn

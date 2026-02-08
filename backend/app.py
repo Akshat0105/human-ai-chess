@@ -19,7 +19,8 @@ os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, "games.jsonl")
 
 app = Flask(__name__, static_url_path="", static_folder="static")
-CORS(app)
+
+CORS(app)  # Allow all origins
 
 _engine = None  # global engine instance
 

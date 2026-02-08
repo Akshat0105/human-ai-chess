@@ -1,7 +1,9 @@
+const API_BASE = "https://human-ai-chess.onrender.com";
+
 const API = {
-  evalMove: "/api/eval-move",
-  makeMove: "/api/make-move",
-  bestMove: "/api/best-move",
+  evalMove: `${API_BASE}/api/eval-move`,
+  makeMove: `${API_BASE}/api/make-move`,
+  bestMove: `${API_BASE}/api/best-move`,
 };
 
 // -------- GLOBAL STATE --------
@@ -380,7 +382,7 @@ async function sendGameLogIfReady(resultFromEngine) {
   currentGameLog.endedAt = new Date().toISOString();
 
   try {
-    await postJSON("/api/log-game", currentGameLog);
+    await postJSON(`${API_BASE}/api/log-game`, currentGameLog);
   } catch (e) {
     console.error("Failed to log game", e);
   }
@@ -393,7 +395,7 @@ async function sendGameLogIfReady(resultFromEngine) {
 const onDragStart = (source, piece) => {
   if (game.game_over()) return false;
   if ((game.turn() === "w" && piece.startsWith("b")) ||
-      (game.turn() === "b" && piece.startsWith("w"))) return false;
+    (game.turn() === "b" && piece.startsWith("w"))) return false;
   return true;
 };
 

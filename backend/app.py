@@ -38,9 +38,13 @@ login_manager = LoginManager(app)
 
 CORS(app, supports_credentials=True)
 
-# Create tables on first request
+# Create tables on first run (skip if they already exist)
 with app.app_context():
-    db.create_all()
+    from sqlalchemy import inspect as sa_inspect
+    inspector = sa_inspect(db.engine)
+    existing = inspector.get_table_names()
+    if not existing:
+        db.create_all()
 
 _engine = None  # global engine instance
 

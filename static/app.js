@@ -4,6 +4,12 @@ const API = {
   evalMove: `${API_BASE}/api/eval-move`,
   makeMove: `${API_BASE}/api/make-move`,
   bestMove: `${API_BASE}/api/best-move`,
+  signup: `${API_BASE}/api/signup`,
+  login: `${API_BASE}/api/login`,
+  logout: `${API_BASE}/api/logout`,
+  me: `${API_BASE}/api/me`,
+  myGames: `${API_BASE}/api/my-games`,
+  gameDetail: (id) => `${API_BASE}/api/game/${id}`,
 };
 
 // -------- GLOBAL STATE --------
@@ -21,6 +27,8 @@ const evalCache = new Map();   // key: fen|uci|depth -> evalRes
 let moveHistory = [];          // [{ color, san, captured }]
 let clientId = null;
 let currentGameLog = null;     // { clientId, startedAt, endedAt, mode, difficulty, result, moves: [...] }
+let currentUser = null;        // { id, email, createdAt } or null
+let authMode = "login";        // 'login' | 'signup'
 
 // -------- EVAL BANDS (no raw cp in UI) --------
 
@@ -485,7 +493,7 @@ async function playEngineMoveIfNeeded() {
       fen()
     )}&depth=${bestMoveDepth()}`;
 
-    const data = await (await fetch(url)).json();
+    const data = await (await fetch(url, { credentials: "include" })).json();
     const bestSan = data.bestSan;
 
     if (!bestSan) {
@@ -527,16 +535,263 @@ async function postJSON(url, body) {
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await res.text());
   return await res.json();
 }
 
+async function getJSON(url) {
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error(await res.text());
+  return await res.json();
+}
+
+// -------- AUTH FUNCTIONS --------
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const tabs = document.querySelectorAll(".auth-tab");
+  tabs.forEach((t) => {
+    t.classList.toggle("active", t.dataset.tab === mode);
+  });
+
+  const submitBtn = document.getElementById("authSubmitBtn");
+  const hintText = document.getElementById("authHintText");
+  const switchBtn = document.getElementById("authSwitchBtn");
+
+  if (mode === "login") {
+    submitBtn.textContent = "Log In";
+    hintText.textContent = "Don't have an account?";
+    switchBtn.textContent = "Sign Up";
+  } else {
+    submitBtn.textContent = "Sign Up";
+    hintText.textContent = "Already have an account?";
+    switchBtn.textContent = "Log In";
+  }
+
+  document.getElementById("authError").textContent = "";
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  const errorEl = document.getElementById("authError");
+  errorEl.textContent = "";
+
+  const url = authMode === "login" ? API.login : API.signup;
+
+  try {
+    const data = await postJSON(url, { email, password });
+    currentUser = data.user;
+    showLandingScreen();
+  } catch (err) {
+    try {
+      const parsed = JSON.parse(err.message);
+      errorEl.textContent = parsed.error || "Something went wrong.";
+    } catch {
+      errorEl.textContent = "Something went wrong. Please try again.";
+    }
+  }
+}
+
+async function handleLogout() {
+  try {
+    await postJSON(API.logout, {});
+  } catch {
+    // ignore
+  }
+  currentUser = null;
+  showAuthScreen();
+}
+
+async function checkAuth() {
+  try {
+    const data = await getJSON(API.me);
+    if (data.user) {
+      currentUser = data.user;
+      return true;
+    }
+  } catch {
+    // not logged in
+  }
+  return false;
+}
+
+// -------- GAME HISTORY FUNCTIONS --------
+
+function formatDate(isoStr) {
+  if (!isoStr) return "—";
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleDateString("en-US", {
+      month: "short", day: "numeric", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
+  } catch {
+    return isoStr;
+  }
+}
+
+function resultBadge(result) {
+  if (!result) return '<span class="result-badge draw">—</span>';
+  if (result === "1-0") return '<span class="result-badge win">White wins</span>';
+  if (result === "0-1") return '<span class="result-badge loss">Black wins</span>';
+  return '<span class="result-badge draw">Draw</span>';
+}
+
+async function loadGameHistory() {
+  const container = document.getElementById("historyContent");
+  container.innerHTML = '<p class="muted">Loading your games…</p>';
+
+  try {
+    const data = await getJSON(API.myGames);
+    const games = data.games || [];
+
+    if (games.length === 0) {
+      container.innerHTML = '<p class="no-games-msg">No games yet. Play a game and it will appear here!</p>';
+      return;
+    }
+
+    let html = `
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Mode</th>
+            <th>Difficulty</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    games.forEach((g) => {
+      html += `
+        <tr data-game-id="${g.id}">
+          <td>${formatDate(g.startedAt)}</td>
+          <td>${g.mode === "computer" ? "vs Computer" : "2-Player"}</td>
+          <td>${g.difficulty || "—"}</td>
+          <td>${resultBadge(g.result)}</td>
+        </tr>
+      `;
+    });
+
+    html += "</tbody></table>";
+    container.innerHTML = html;
+
+    // click handler for rows
+    container.querySelectorAll("tr[data-game-id]").forEach((row) => {
+      row.addEventListener("click", () => {
+        const id = row.dataset.gameId;
+        showGameDetail(id);
+      });
+    });
+
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = '<p class="muted">Failed to load games.</p>';
+  }
+}
+
+async function showGameDetail(gameId) {
+  hideAllScreens();
+  document.getElementById("gameDetailScreen").classList.remove("hidden");
+
+  const container = document.getElementById("gameDetailContent");
+  container.innerHTML = '<p class="muted">Loading…</p>';
+
+  try {
+    const data = await getJSON(API.gameDetail(gameId));
+    const g = data.game;
+
+    let html = `
+      <div class="game-detail-header">
+        <div class="detail-item">
+          <span class="detail-label">Date</span>
+          <span class="detail-value">${formatDate(g.startedAt)}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Mode</span>
+          <span class="detail-value">${g.mode === "computer" ? "vs Computer" : "2-Player"}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Difficulty</span>
+          <span class="detail-value">${g.difficulty || "—"}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Result</span>
+          <span class="detail-value">${resultBadge(g.result)}</span>
+        </div>
+      </div>
+    `;
+
+    const moves = g.moves || [];
+    if (moves.length === 0) {
+      html += '<p class="muted">No moves recorded for this game.</p>';
+    } else {
+      html += `
+        <h3>Moves</h3>
+        <table class="moves-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Color</th>
+              <th>Move</th>
+              <th>Quality</th>
+              <th>Δ cp</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      moves.forEach((m) => {
+        const bucketClass = (m.bucket || "").toLowerCase();
+        html += `
+          <tr>
+            <td>${m.moveNumber || ""}</td>
+            <td>${m.color || ""}</td>
+            <td><strong>${m.san || ""}</strong></td>
+            <td><span class="bucket-dot ${bucketClass}"></span>${m.bucket || "—"}</td>
+            <td>${typeof m.deltaCp === "number" ? m.deltaCp : "—"}</td>
+          </tr>
+        `;
+      });
+
+      html += "</tbody></table>";
+    }
+
+    container.innerHTML = html;
+
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = '<p class="muted">Failed to load game details.</p>';
+  }
+}
+
 // -------- SCREEN SWITCHING --------
 
-function showGameScreen() {
+function hideAllScreens() {
+  document.getElementById("authScreen").classList.add("hidden");
   document.getElementById("landing").classList.add("hidden");
+  document.getElementById("gameScreen").classList.add("hidden");
+  document.getElementById("historyScreen").classList.add("hidden");
+  document.getElementById("gameDetailScreen").classList.add("hidden");
+}
+
+function showAuthScreen() {
+  hideAllScreens();
+  document.getElementById("authScreen").classList.remove("hidden");
+  document.getElementById("authEmail").value = "";
+  document.getElementById("authPassword").value = "";
+  document.getElementById("authError").textContent = "";
+}
+
+function showGameScreen() {
+  hideAllScreens();
   document.getElementById("gameScreen").classList.remove("hidden");
 
   const modeInfoEl = document.getElementById("modeInfo");
@@ -552,8 +807,14 @@ function showGameScreen() {
 }
 
 function showLandingScreen() {
-  document.getElementById("gameScreen").classList.add("hidden");
+  hideAllScreens();
   document.getElementById("landing").classList.remove("hidden");
+
+  // Update user bar
+  const emailEl = document.getElementById("userEmailDisplay");
+  if (emailEl && currentUser) {
+    emailEl.textContent = currentUser.email;
+  }
 
   game.reset();
   board.start();
@@ -569,9 +830,15 @@ function showLandingScreen() {
   currentGameLog = null;
 }
 
+function showHistoryScreen() {
+  hideAllScreens();
+  document.getElementById("historyScreen").classList.remove("hidden");
+  loadGameHistory();
+}
+
 // -------- INIT --------
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
   // persistent client id
   clientId = localStorage.getItem("chessClientId");
   if (!clientId) {
@@ -597,6 +864,45 @@ window.addEventListener("load", () => {
   updateMoveList();
   updateCaptures();
   refreshGameOverBanner();
+
+  // Check if already logged in
+  const loggedIn = await checkAuth();
+  if (loggedIn) {
+    showLandingScreen();
+  } else {
+    showAuthScreen();
+  }
+
+  // -------- AUTH EVENT LISTENERS --------
+
+  // Auth tabs
+  document.querySelectorAll(".auth-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      setAuthMode(tab.dataset.tab);
+    });
+  });
+
+  // Auth switch link
+  document.getElementById("authSwitchBtn").addEventListener("click", () => {
+    setAuthMode(authMode === "login" ? "signup" : "login");
+  });
+
+  // Auth form submit
+  document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
+
+  // Logout
+  document.getElementById("logoutBtn").addEventListener("click", handleLogout);
+
+  // My Games button
+  document.getElementById("myGamesBtn").addEventListener("click", showHistoryScreen);
+
+  // History back button
+  document.getElementById("historyBackBtn").addEventListener("click", showLandingScreen);
+
+  // Detail back button
+  document.getElementById("detailBackBtn").addEventListener("click", showHistoryScreen);
+
+  // -------- GAME EVENT LISTENERS --------
 
   // difficulty buttons
   document.querySelectorAll(".diff-btn").forEach((btn) => {
@@ -772,7 +1078,7 @@ window.addEventListener("load", () => {
         fen()
       )}&depth=${deep}`;
 
-      const data = await (await fetch(url)).json();
+      const data = await (await fetch(url, { credentials: "include" })).json();
       if (!data.bestSan) {
         refreshGameOverBanner();
         await sendGameLogIfReady(null);

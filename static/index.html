@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <title>Chess AI Support</title>
@@ -9,11 +10,58 @@
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="vendor/chessboard.css" />
 </head>
+
 <body>
 
-    <!-- Landing Screen -->
-    <section id="landing" class="screen landing-screen">
+    <!-- Auth Screen -->
+    <section id="authScreen" class="screen auth-screen">
         <div class="shell">
+            <h1 class="app-title">Chess AI Support</h1>
+            <p class="subtitle">Sign in to save and review your games.</p>
+
+            <div class="auth-card">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Log In</button>
+                    <button class="auth-tab" data-tab="signup">Sign Up</button>
+                </div>
+
+                <form id="authForm" class="auth-form" autocomplete="off">
+                    <div class="form-group">
+                        <label for="authEmail">Email</label>
+                        <input type="email" id="authEmail" placeholder="you@example.com" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="authPassword">Password</label>
+                        <input type="password" id="authPassword" placeholder="••••••••" required minlength="6" />
+                    </div>
+
+                    <p id="authError" class="auth-error"></p>
+
+                    <button type="submit" id="authSubmitBtn" class="primary-btn full-width">
+                        Log In
+                    </button>
+                </form>
+
+                <p class="auth-hint">
+                    <span id="authHintText">Don't have an account?</span>
+                    <button id="authSwitchBtn" class="link-btn">Sign Up</button>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Landing Screen -->
+    <section id="landing" class="screen landing-screen hidden">
+        <div class="shell">
+            <!-- User bar -->
+            <div class="user-bar">
+                <span id="userEmailDisplay" class="user-email"></span>
+                <div class="user-bar-actions">
+                    <button id="myGamesBtn" class="ghost-btn small-btn">My Games</button>
+                    <button id="logoutBtn" class="ghost-btn small-btn">Logout</button>
+                </div>
+            </div>
+
             <h1 class="app-title">Chess AI Support</h1>
             <p class="subtitle">Play with real-time engine feedback and coaching tools.</p>
 
@@ -44,6 +92,42 @@
                         Start 2-Player Game
                     </button>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Game History Screen -->
+    <section id="historyScreen" class="screen history-screen hidden">
+        <div class="shell">
+            <header class="top-bar">
+                <button id="historyBackBtn" class="ghost-btn back-btn">← Back</button>
+                <div class="brand">
+                    <span class="logo-dot"></span>
+                    <span class="brand-name">My Games</span>
+                </div>
+                <div></div>
+            </header>
+
+            <div id="historyContent" class="history-content">
+                <p class="muted">Loading your games…</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Game Detail Screen -->
+    <section id="gameDetailScreen" class="screen history-screen hidden">
+        <div class="shell">
+            <header class="top-bar">
+                <button id="detailBackBtn" class="ghost-btn back-btn">← Back to My Games</button>
+                <div class="brand">
+                    <span class="logo-dot"></span>
+                    <span class="brand-name">Game Details</span>
+                </div>
+                <div></div>
+            </header>
+
+            <div id="gameDetailContent" class="history-content">
+                <p class="muted">Loading…</p>
             </div>
         </div>
     </section>
@@ -172,4 +256,5 @@
     <script src="app.js"></script>
 
 </body>
+
 </html>

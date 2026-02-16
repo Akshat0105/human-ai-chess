@@ -29,6 +29,7 @@ let clientId = null;
 let currentGameLog = null;     // { clientId, startedAt, endedAt, mode, difficulty, result, moves: [...] }
 let currentUser = null;        // { id, email, createdAt } or null
 let authMode = "login";        // 'login' | 'signup'
+let previewing = false;        // true while a move preview is shown on the board
 
 // -------- EVAL BANDS (no raw cp in UI) --------
 
@@ -398,10 +399,31 @@ async function sendGameLogIfReady(resultFromEngine) {
   currentGameLog = null; // avoid double send
 }
 
+async function forceEndGame() {
+  if (!currentGameLog) return;
+
+  if (game.game_over()) {
+    currentGameLog.result = game.result ? game.result() : "*";
+  } else {
+    currentGameLog.result = "*";
+  }
+
+  currentGameLog.endedAt = new Date().toISOString();
+
+  try {
+    await postJSON(`${API_BASE}/api/log-game`, currentGameLog);
+  } catch (e) {
+    console.error("Failed to log game", e);
+  }
+
+  currentGameLog = null;
+}
+
 // -------- DRAG & DROP --------
 
 const onDragStart = (source, piece) => {
   if (game.game_over()) return false;
+  if (pending) return false;
   if ((game.turn() === "w" && piece.startsWith("b")) ||
     (game.turn() === "b" && piece.startsWith("w"))) return false;
   return true;
@@ -431,6 +453,7 @@ async function onDrop(source, target) {
   const captured = move.captured || null;
 
   game.undo(); // we only commit on "Play move"
+  previewing = true;
 
   try {
     const subtle = document.getElementById("subtleMode").checked;
@@ -472,14 +495,16 @@ async function onDrop(source, target) {
 
   } catch (e) {
     console.error(e);
-    alert("Evaluation failed – check backend.");
+    previewing = false;
+    board.position(game.fen());
+    alert("Evaluation failed \u2013 check backend.");
   }
-
-  return "snapback";
 }
 
 function onSnapEnd() {
-  board.position(game.fen());
+  if (!previewing) {
+    board.position(game.fen());
+  }
 }
 
 // -------- ENGINE MOVE (vs computer) --------
@@ -977,13 +1002,33 @@ window.addEventListener("load", async () => {
   });
 
   // back to landing
-  document.getElementById("backBtn").addEventListener("click", () => {
+  document.getElementById("backBtn").addEventListener("click", async () => {
+    if (pending) {
+      previewing = false;
+      pending = null;
+      board.position(game.fen());
+      hideChip();
+    }
+    await forceEndGame();
+    showLandingScreen();
+  });
+
+  // End game & save
+  document.getElementById("endGameBtn").addEventListener("click", async () => {
+    if (pending) {
+      previewing = false;
+      pending = null;
+      board.position(game.fen());
+      hideChip();
+    }
+    await forceEndGame();
     showLandingScreen();
   });
 
   // Play move
   document.getElementById("confirmMove").addEventListener("click", async () => {
     if (!pending) return;
+    previewing = false;
     hideChip();
     clearIllegalMessage();
 
@@ -1043,13 +1088,16 @@ window.addEventListener("load", async () => {
       }
     } catch (e) {
       console.error(e);
+      board.position(game.fen());
       pending = null;
     }
   });
 
   // Cancel move
   document.getElementById("cancelMove").addEventListener("click", () => {
+    previewing = false;
     pending = null;
+    board.position(game.fen());
     hideChip();
     clearIllegalMessage();
   });

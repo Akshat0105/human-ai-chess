@@ -41,7 +41,8 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 
 CORS(app, supports_credentials=True, origins=[
-    os.getenv("FRONTEND_ORIGIN", "http://localhost:5000"),
+    "https://human-ai-chess.vercel.app",
+    "http://localhost:5000",
 ])
 
 # Create tables on first run (skip if they already exist)

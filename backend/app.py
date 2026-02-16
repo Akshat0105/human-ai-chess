@@ -25,6 +25,10 @@ LOG_FILE = os.path.join(LOG_DIR, "games.jsonl")
 app = Flask(__name__, static_url_path="", static_folder="static")
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-change-in-production")
 
+# Session cookie config for cross-origin deployment (Vercel frontend → Render backend)
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = True
+
 # Database config
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
     "DATABASE_URL", "sqlite:///chess.db"
@@ -36,7 +40,9 @@ db.init_app(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True, origins=[
+    os.getenv("FRONTEND_ORIGIN", "http://localhost:5000"),
+])
 
 # Create tables on first run (skip if they already exist)
 with app.app_context():

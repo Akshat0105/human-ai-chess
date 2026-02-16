@@ -6,8 +6,12 @@ from datetime import datetime
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_bcrypt import Bcrypt
 import chess
 import chess.engine
+
+from models import db, User, Game
 
 # ---------------- CONFIG ----------------
 
@@ -19,10 +23,38 @@ os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, "games.jsonl")
 
 app = Flask(__name__, static_url_path="", static_folder="static")
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret-change-in-production")
 
-CORS(app)  # Allow all origins
+# Database config
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    "DATABASE_URL", "sqlite:///chess.db"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Initialize extensions
+db.init_app(app)
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+
+CORS(app, supports_credentials=True)
+
+# Create tables on first request
+with app.app_context():
+    db.create_all()
 
 _engine = None  # global engine instance
+
+
+# ---------------- LOGIN MANAGER ----------------
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({"error": "Not authenticated"}), 401
 
 
 # ---------------- ENGINE MANAGEMENT ----------------
@@ -138,6 +170,64 @@ def serve_images(filename):
 def favicon():
     """Serve favicon if present."""
     return send_from_directory("static", "favicon.ico")
+
+
+# ---------------- AUTH ROUTES ----------------
+
+@app.post("/api/signup")
+def signup():
+    """Create a new user account with email and password."""
+    data = request.get_json(force=True)
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+
+    if not email or "@" not in email:
+        return jsonify({"error": "Valid email is required"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    existing = User.query.filter_by(email=email).first()
+    if existing:
+        return jsonify({"error": "An account with this email already exists"}), 409
+
+    pw_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+    user = User(email=email, password_hash=pw_hash)
+    db.session.add(user)
+    db.session.commit()
+
+    login_user(user, remember=True)
+    return jsonify({"user": user.to_dict()}), 201
+
+
+@app.post("/api/login")
+def login():
+    """Authenticate with email and password."""
+    data = request.get_json(force=True)
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not bcrypt.check_password_hash(user.password_hash, password):
+        return jsonify({"error": "Invalid email or password"}), 401
+
+    login_user(user, remember=True)
+    return jsonify({"user": user.to_dict()})
+
+
+@app.post("/api/logout")
+@login_required
+def logout():
+    """Log out the current user."""
+    logout_user()
+    return jsonify({"status": "ok"})
+
+
+@app.get("/api/me")
+def me():
+    """Return current user info if logged in."""
+    if current_user.is_authenticated:
+        return jsonify({"user": current_user.to_dict()})
+    return jsonify({"user": None})
 
 
 # ---------------- API ROUTES ----------------
@@ -274,6 +364,7 @@ def best_move():
 def log_game():
     """
     Append one completed game log to a JSONL file.
+    If user is logged in, also save to database.
 
     Expected payload:
     {
@@ -289,13 +380,54 @@ def log_game():
     data = request.get_json(force=True)
     data["serverReceivedAt"] = datetime.utcnow().isoformat() + "Z"
 
+    # Always write to JSONL log (backward compat)
     try:
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(data) + "\n")
     except Exception as e:
         return jsonify({"error": f"Failed to write log: {e}"}), 500
 
+    # If user is logged in, also save to database
+    if current_user.is_authenticated:
+        game_record = Game(
+            user_id=current_user.id,
+            started_at=data.get("startedAt"),
+            ended_at=data.get("endedAt"),
+            mode=data.get("mode"),
+            difficulty=data.get("difficulty"),
+            result=data.get("result"),
+            moves=json.dumps(data.get("moves", [])),
+        )
+        db.session.add(game_record)
+        db.session.commit()
+
     return jsonify({"status": "ok"})
+
+
+# ---------------- GAME HISTORY ROUTES ----------------
+
+@app.get("/api/my-games")
+@login_required
+def my_games():
+    """Return list of the current user's past games (summary)."""
+    games = (
+        Game.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Game.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return jsonify({"games": [g.to_summary() for g in games]})
+
+
+@app.get("/api/game/<int:game_id>")
+@login_required
+def get_game(game_id):
+    """Return full detail for a single game (must belong to current user)."""
+    game_record = Game.query.filter_by(id=game_id, user_id=current_user.id).first()
+    if not game_record:
+        return jsonify({"error": "Game not found"}), 404
+    return jsonify({"game": game_record.to_detail()})
 
 
 # ---------------- STOCKFISH TEST + MAIN ----------------

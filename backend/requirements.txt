@@ -3,3 +3,6 @@ flask-cors
 python-chess
 stockfish
 gunicorn
+flask-sqlalchemy
+flask-login
+flask-bcrypt

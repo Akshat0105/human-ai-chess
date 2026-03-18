@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Chess AI – User Performance Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1e1e2e;--surface:#24243e;--card:#313244;--border:#45475a;
+  --text:#cdd6f4;--muted:#6c7086;
+  --green:#22c55e;--orange:#f97316;--red:#ef4444;--yellow:#fbbf24;
+  --blue:#89b4fa;--pink:#f38ba8;--accent:#cba6f7;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+.hero{
+  background:linear-gradient(135deg,#1e1e2e 0%,#2d1b69 50%,#1e1e2e 100%);
+  padding:56px 40px 44px;text-align:center;border-bottom:1px solid var(--border);
+}
+.hero h1{
+  font-size:2.4rem;font-weight:700;
+  background:linear-gradient(90deg,var(--blue),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:10px;
+}
+.hero p{color:var(--muted);font-size:1rem}
+
+.stats-row{
+  display:flex;flex-wrap:wrap;gap:18px;justify-content:center;padding:28px 40px;
+}
+.stat-pill{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:16px 28px;text-align:center;min-width:120px;
+}
+.stat-pill .val{font-size:1.9rem;font-weight:700;color:var(--accent)}
+.stat-pill .lbl{font-size:.78rem;color:var(--muted);margin-top:4px}
+
+.section{padding:28px 40px;max-width:1400px;margin:0 auto}
+.section-title{
+  font-size:1.2rem;font-weight:600;color:var(--text);
+  margin-bottom:22px;display:flex;align-items:center;gap:10px;
+}
+.section-title::before{
+  content:'';display:block;width:4px;height:20px;
+  background:var(--accent);border-radius:4px;
+}
+.chart-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:26px;margin-bottom:26px;
+}
+.chart-card h3{
+  font-size:.85rem;font-weight:600;color:var(--muted);
+  margin-bottom:16px;letter-spacing:.05em;text-transform:uppercase;
+}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{
+  text-align:left;padding:11px 13px;border-bottom:1px solid var(--border);
+  color:var(--muted);font-weight:500;text-transform:uppercase;
+  font-size:.75rem;letter-spacing:.06em;
+}
+td{padding:11px 13px;border-bottom:1px solid rgba(69,71,90,.4)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(137,180,250,.04)}
+.rank-num{color:var(--accent);font-weight:700}
+.lb-name{font-weight:600}
+.lb-email{font-size:.75rem;color:var(--muted);margin-top:2px}
+
+.user-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:22px;
+}
+.user-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:20px;
+}
+.user-card-header{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  margin-bottom:10px;
+}
+.user-name{font-size:1rem;font-weight:600}
+.user-meta{font-size:.75rem;color:var(--muted);margin-top:3px}
+.wdl-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.wdl{font-size:.78rem;font-weight:600;padding:3px 9px;border-radius:20px}
+.wdl.w{background:rgba(34,197,94,.15);color:var(--green)}
+.wdl.d{background:rgba(251,191,36,.15);color:var(--yellow)}
+.wdl.l{background:rgba(239,68,68,.15);color:var(--red)}
+.wdl.cp{background:rgba(203,166,247,.1);color:var(--accent)}
+.results-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.result-badge{
+  font-size:.72rem;font-weight:600;padding:2px 9px;
+  border-radius:20px;border:1px solid;
+}
+.r-1_0{color:#22c55e;border-color:#22c55e55;background:rgba(34,197,94,.1)}
+.r-0_1{color:#ef4444;border-color:#ef444455;background:rgba(239,68,68,.1)}
+.r-1_2_1_2{color:#fbbf24;border-color:#fbbf2455;background:rgba(251,191,36,.1)}
+
+footer{
+  text-align:center;padding:28px;color:var(--muted);
+  font-size:.82rem;border-top:1px solid var(--border);margin-top:28px;
+}
+
+@media(max-width:720px){
+  .two-col{grid-template-columns:1fr}
+  .hero h1{font-size:1.7rem}
+  .section,.stats-row{padding:18px 14px}
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>♟ Chess AI – User Performance Report</h1>
+  <p>15 users &nbsp;·&nbsp; 15 games each &nbsp;·&nbsp; Powered by Stockfish analysis</p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-pill"><div class="val">15</div><div class="lbl">Users</div></div>
+  <div class="stat-pill"><div class="val">225</div><div class="lbl">Games Played</div></div>
+  <div class="stat-pill"><div class="val">5,241</div><div class="lbl">Total Moves</div></div>
+  <div class="stat-pill"><div class="val">0</div><div class="lbl">White Wins</div></div>
+  <div class="stat-pill"><div class="val">225</div><div class="lbl">Black Wins</div></div>
+  <div class="stat-pill"><div class="val">0</div><div class="lbl">Draws</div></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Overall Performance</div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Good vs. Bad Move % (sorted by rating)</h3>
+      <canvas id="goodBadBar" height="230"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Win / Draw / Loss per User</h3>
+      <canvas id="wdlBar" height="230"></canvas>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="chart-card">
+      <h3>Move Quality Distribution (stacked %)</h3>
+      <canvas id="bucketStacked" height="230"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Average Centipawn Loss vs Rating</h3>
+      <canvas id="cpScatter" height="230"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Leaderboard</div>
+  <div class="chart-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>User</th><th>Rating</th><th>Level</th>
+            <th>W</th><th>D</th><th>L</th>
+            <th>Good %</th><th>Bad %</th><th>Avg Δcp</th>
+          </tr>
+        </thead>
+        <tbody><tr><td class="rank-num">1</td><td><div class="lb-name">Olivia Carter</div><div class="lb-email">olivia.carter55@outlook.com</div></td><td style="color:#89b4fa;font-weight:600">1900</td><td style="color:#a6e3a1">Advanced</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">92.8%</td><td style="color:#f97316">7.2%</td><td style="color:#cba6f7">-828.3 cp</td></tr><tr><td class="rank-num">2</td><td><div class="lb-name">Noah Fernandez</div><div class="lb-email">n.fernandez81@gmail.com</div></td><td style="color:#89b4fa;font-weight:600">1680</td><td style="color:#a6e3a1">Strong Club Player</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">84.7%</td><td style="color:#f97316">15.3%</td><td style="color:#cba6f7">-1530.5 cp</td></tr><tr><td class="rank-num">3</td><td><div class="lb-name">Ahmed Al-Farsi</div><div class="lb-email">ahmed.alfarsi@gmail.com</div></td><td style="color:#89b4fa;font-weight:600">1520</td><td style="color:#a6e3a1">Club Player</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">84.2%</td><td style="color:#f97316">15.8%</td><td style="color:#cba6f7">-1775.9 cp</td></tr><tr><td class="rank-num">4</td><td><div class="lb-name">Ethan Brooks</div><div class="lb-email">ethan.brooks99@outlook.com</div></td><td style="color:#89b4fa;font-weight:600">1380</td><td style="color:#a6e3a1">Casual Player</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">79.4%</td><td style="color:#f97316">20.6%</td><td style="color:#cba6f7">-2089.0 cp</td></tr><tr><td class="rank-num">5</td><td><div class="lb-name">Marcus Webb</div><div class="lb-email">marcwebb1988@hotmail.com</div></td><td style="color:#89b4fa;font-weight:600">1240</td><td style="color:#a6e3a1">Casual Player</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">80.6%</td><td style="color:#f97316">19.4%</td><td style="color:#cba6f7">-3159.7 cp</td></tr><tr><td class="rank-num">6</td><td><div class="lb-name">Rin Tanaka</div><div class="lb-email">rin.tanaka.chess@gmail.com</div></td><td style="color:#89b4fa;font-weight:600">1150</td><td style="color:#a6e3a1">Beginner+</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">78.7%</td><td style="color:#f97316">21.3%</td><td style="color:#cba6f7">-1626.6 cp</td></tr><tr><td class="rank-num">7</td><td><div class="lb-name">Liam O'Brien</div><div class="lb-email">liam.obrien77@gmail.com</div></td><td style="color:#89b4fa;font-weight:600">1105</td><td style="color:#a6e3a1">Beginner+</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">73.9%</td><td style="color:#f97316">26.1%</td><td style="color:#cba6f7">-3147.5 cp</td></tr><tr><td class="rank-num">8</td><td><div class="lb-name">Isabella Rossi</div><div class="lb-email">i.rossi.chess@gmail.com</div></td><td style="color:#89b4fa;font-weight:600">1070</td><td style="color:#a6e3a1">Beginner+</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">75.9%</td><td style="color:#f97316">24.1%</td><td style="color:#cba6f7">-3134.7 cp</td></tr><tr><td class="rank-num">9</td><td><div class="lb-name">Daniel Kowalski</div><div class="lb-email">d.kowalski91@outlook.com</div></td><td style="color:#89b4fa;font-weight:600">1020</td><td style="color:#a6e3a1">Beginner+</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">72.6%</td><td style="color:#f97316">27.4%</td><td style="color:#cba6f7">-4305.5 cp</td></tr><tr><td class="rank-num">10</td><td><div class="lb-name">Ananya Patel</div><div class="lb-email">ananya.patel_chess@gmail.com</div></td><td style="color:#89b4fa;font-weight:600">990</td><td style="color:#a6e3a1">Beginner</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">77.1%</td><td style="color:#f97316">22.9%</td><td style="color:#cba6f7">-1910.8 cp</td></tr><tr><td class="rank-num">11</td><td><div class="lb-name">Priya Sharma</div><div class="lb-email">priya.sharma88@gmail.com</div></td><td style="color:#89b4fa;font-weight:600">950</td><td style="color:#a6e3a1">Beginner</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">74.2%</td><td style="color:#f97316">25.8%</td><td style="color:#cba6f7">-4095.6 cp</td></tr><tr><td class="rank-num">12</td><td><div class="lb-name">Sofia Hernandez</div><div class="lb-email">sofia.h2003@yahoo.com</div></td><td style="color:#89b4fa;font-weight:600">875</td><td style="color:#a6e3a1">Beginner</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">73.7%</td><td style="color:#f97316">26.3%</td><td style="color:#cba6f7">-2632.1 cp</td></tr><tr><td class="rank-num">13</td><td><div class="lb-name">Mia Thompson</div><div class="lb-email">mia.thompson14@yahoo.com</div></td><td style="color:#89b4fa;font-weight:600">830</td><td style="color:#a6e3a1">Beginner</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">72.3%</td><td style="color:#f97316">27.7%</td><td style="color:#cba6f7">-4680.3 cp</td></tr><tr><td class="rank-num">14</td><td><div class="lb-name">James Miller</div><div class="lb-email">james.miller42@gmail.com</div></td><td style="color:#89b4fa;font-weight:600">824</td><td style="color:#a6e3a1">Beginner</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">69.9%</td><td style="color:#f97316">30.1%</td><td style="color:#cba6f7">-4069.9 cp</td></tr><tr><td class="rank-num">15</td><td><div class="lb-name">Chloe Nguyen</div><div class="lb-email">chloe.nguyen22@gmail.com</div></td><td style="color:#89b4fa;font-weight:600">760</td><td style="color:#a6e3a1">Beginner</td><td style="color:#22c55e;font-weight:600">0</td><td style="color:#fbbf24">0</td><td style="color:#ef4444">15</td><td style="color:#22c55e">78.3%</td><td style="color:#f97316">21.7%</td><td style="color:#cba6f7">-2150.9 cp</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Per-User Game Progression</div>
+  <div class="user-grid">
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Olivia Carter</div>
+              <div class="user-meta">olivia.carter55@outlook.com &nbsp;·&nbsp; Rating: <strong>1900</strong> &nbsp;·&nbsp; Advanced</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -828.3 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_0" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Noah Fernandez</div>
+              <div class="user-meta">n.fernandez81@gmail.com &nbsp;·&nbsp; Rating: <strong>1680</strong> &nbsp;·&nbsp; Strong Club Player</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -1530.5 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_1" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Ahmed Al-Farsi</div>
+              <div class="user-meta">ahmed.alfarsi@gmail.com &nbsp;·&nbsp; Rating: <strong>1520</strong> &nbsp;·&nbsp; Club Player</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -1775.9 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_2" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Ethan Brooks</div>
+              <div class="user-meta">ethan.brooks99@outlook.com &nbsp;·&nbsp; Rating: <strong>1380</strong> &nbsp;·&nbsp; Casual Player</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -2089.0 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_3" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Marcus Webb</div>
+              <div class="user-meta">marcwebb1988@hotmail.com &nbsp;·&nbsp; Rating: <strong>1240</strong> &nbsp;·&nbsp; Casual Player</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -3159.7 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_4" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Rin Tanaka</div>
+              <div class="user-meta">rin.tanaka.chess@gmail.com &nbsp;·&nbsp; Rating: <strong>1150</strong> &nbsp;·&nbsp; Beginner+</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -1626.6 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_5" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Liam O'Brien</div>
+              <div class="user-meta">liam.obrien77@gmail.com &nbsp;·&nbsp; Rating: <strong>1105</strong> &nbsp;·&nbsp; Beginner+</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -3147.5 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_6" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Isabella Rossi</div>
+              <div class="user-meta">i.rossi.chess@gmail.com &nbsp;·&nbsp; Rating: <strong>1070</strong> &nbsp;·&nbsp; Beginner+</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -3134.7 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_7" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Daniel Kowalski</div>
+              <div class="user-meta">d.kowalski91@outlook.com &nbsp;·&nbsp; Rating: <strong>1020</strong> &nbsp;·&nbsp; Beginner+</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -4305.5 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_8" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Ananya Patel</div>
+              <div class="user-meta">ananya.patel_chess@gmail.com &nbsp;·&nbsp; Rating: <strong>990</strong> &nbsp;·&nbsp; Beginner</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -1910.8 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_9" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Priya Sharma</div>
+              <div class="user-meta">priya.sharma88@gmail.com &nbsp;·&nbsp; Rating: <strong>950</strong> &nbsp;·&nbsp; Beginner</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -4095.6 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_10" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Sofia Hernandez</div>
+              <div class="user-meta">sofia.h2003@yahoo.com &nbsp;·&nbsp; Rating: <strong>875</strong> &nbsp;·&nbsp; Beginner</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -2632.1 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_11" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Mia Thompson</div>
+              <div class="user-meta">mia.thompson14@yahoo.com &nbsp;·&nbsp; Rating: <strong>830</strong> &nbsp;·&nbsp; Beginner</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -4680.3 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_12" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">James Miller</div>
+              <div class="user-meta">james.miller42@gmail.com &nbsp;·&nbsp; Rating: <strong>824</strong> &nbsp;·&nbsp; Beginner</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -4069.9 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_13" height="90"></canvas>
+        </div>
+        <div class="user-card">
+          <div class="user-card-header">
+            <div>
+              <div class="user-name">Chloe Nguyen</div>
+              <div class="user-meta">chloe.nguyen22@gmail.com &nbsp;·&nbsp; Rating: <strong>760</strong> &nbsp;·&nbsp; Beginner</div>
+            </div>
+            <div class="wdl-row">
+              <span class="wdl w">0W</span>
+              <span class="wdl d">0D</span>
+              <span class="wdl l">15L</span>
+              <span class="wdl cp">Avg Δ -2150.9 cp</span>
+            </div>
+          </div>
+          <div class="results-row"><span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span> <span class="result-badge r-0_1">0-1</span></div>
+          <canvas id="prog_14" height="90"></canvas>
+        </div></div>
+</div>
+
+<footer>Generated 2026-03-18 &nbsp;·&nbsp; Human-AI Chess &nbsp;·&nbsp; Stockfish Analysis</footer>
+
+<script>
+const gc = c => 'rgba(205,214,244,0.08)';
+
+// Good vs Bad Bar
+new Chart(document.getElementById('goodBadBar'),{
+  type:'bar',
+  data:{
+    labels:["Olivia", "Noah", "Ahmed", "Ethan", "Marcus", "Rin", "Liam", "Isabella", "Daniel", "Ananya", "Priya", "Sofia", "Mia", "James", "Chloe"],
+    datasets:[
+      {label:'Good %',data:[92.8, 84.7, 84.2, 79.4, 80.6, 78.7, 73.9, 75.9, 72.6, 77.1, 74.2, 73.7, 72.3, 69.9, 78.3],backgroundColor:'rgba(34,197,94,0.7)',borderRadius:5},
+      {label:'Bad %', data:[7.2, 15.3, 15.8, 20.6, 19.4, 21.3, 26.1, 24.1, 27.4, 22.9, 25.8, 26.3, 27.7, 30.1, 21.7], backgroundColor:'rgba(239,68,68,0.6)', borderRadius:5}
+    ]
+  },
+  options:{
+    plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+    scales:{
+      x:{ticks:{color:'#cdd6f4',maxRotation:35,font:{size:10}},grid:{color:gc()}},
+      y:{ticks:{color:'#cdd6f4',callback:v=>v+'%'},grid:{color:gc()}}
+    }
+  }
+});
+
+// WDL Bar
+new Chart(document.getElementById('wdlBar'),{
+  type:'bar',
+  data:{
+    labels:["Olivia", "Noah", "Ahmed", "Ethan", "Marcus", "Rin", "Liam", "Isabella", "Daniel", "Ananya", "Priya", "Sofia", "Mia", "James", "Chloe"],
+    datasets:[
+      {label:'Wins',  data:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  backgroundColor:'rgba(34,197,94,0.75)', borderRadius:5},
+      {label:'Draws', data:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], backgroundColor:'rgba(251,191,36,0.75)',borderRadius:5},
+      {label:'Losses',data:[15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],backgroundColor:'rgba(239,68,68,0.65)', borderRadius:5}
+    ]
+  },
+  options:{
+    plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+    scales:{
+      x:{ticks:{color:'#cdd6f4',maxRotation:35,font:{size:10}},grid:{color:gc()}},
+      y:{ticks:{color:'#cdd6f4'},grid:{color:gc()}}
+    }
+  }
+});
+
+// Stacked bucket bar
+new Chart(document.getElementById('bucketStacked'),{
+  type:'bar',
+  data:{labels:["Olivia", "Noah", "Ahmed", "Ethan", "Marcus", "Rin", "Liam", "Isabella", "Daniel", "Ananya", "Priya", "Sofia", "Mia", "James", "Chloe"],datasets:[{label:"Hot",data:[87.8, 79.2, 76.5, 67.7, 67.7, 68.8, 64.9, 64.3, 60.1, 64.1, 60.7, 57.4, 58.0, 57.4, 63.5],backgroundColor:"#22c55e"},{label:"Warm",data:[5.0, 5.5, 7.7, 11.6, 12.9, 10.0, 9.0, 11.6, 12.5, 13.0, 13.5, 16.3, 14.3, 12.5, 14.8],backgroundColor:"#86efac"},{label:"Cool",data:[1.4, 4.4, 4.9, 6.4, 6.9, 7.1, 8.4, 6.8, 7.1, 7.4, 10.1, 9.0, 8.0, 9.9, 6.8],backgroundColor:"#fbbf24"},{label:"Cold",data:[1.6, 4.7, 3.5, 7.0, 5.6, 7.6, 9.3, 7.5, 11.4, 7.4, 6.6, 8.7, 9.2, 9.2, 8.0],backgroundColor:"#f97316"},{label:"Freezing",data:[4.2, 6.1, 7.4, 7.3, 6.9, 6.6, 8.4, 9.9, 8.9, 8.0, 9.1, 8.7, 10.5, 11.0, 6.8],backgroundColor:"#ef4444"}]},
+  options:{
+    plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+    scales:{
+      x:{stacked:true,ticks:{color:'#cdd6f4',maxRotation:35,font:{size:10}},grid:{color:gc()}},
+      y:{stacked:true,ticks:{color:'#cdd6f4',callback:v=>v+'%'},grid:{color:gc()}}
+    }
+  }
+});
+
+// Scatter: rating vs avg cp loss
+new Chart(document.getElementById('cpScatter'),{
+  type:'scatter',
+  data:{
+    datasets:[{
+      label:'Avg Δcp vs Rating',
+      data: [{"x": 1900, "y": -828.3}, {"x": 1680, "y": -1530.5}, {"x": 1520, "y": -1775.9}, {"x": 1380, "y": -2089.0}, {"x": 1240, "y": -3159.7}, {"x": 1150, "y": -1626.6}, {"x": 1105, "y": -3147.5}, {"x": 1070, "y": -3134.7}, {"x": 1020, "y": -4305.5}, {"x": 990, "y": -1910.8}, {"x": 950, "y": -4095.6}, {"x": 875, "y": -2632.1}, {"x": 830, "y": -4680.3}, {"x": 824, "y": -4069.9}, {"x": 760, "y": -2150.9}],
+      backgroundColor:'rgba(137,180,250,0.85)',
+      pointRadius:7,pointHoverRadius:9
+    }]
+  },
+  options:{
+    plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+    scales:{
+      x:{
+        title:{display:true,text:'Rating',color:'#cdd6f4'},
+        ticks:{color:'#cdd6f4'},grid:{color:gc()}
+      },
+      y:{
+        title:{display:true,text:'Avg Δcp',color:'#cdd6f4'},
+        ticks:{color:'#cdd6f4',callback:v=>v+' cp'},grid:{color:gc()}
+      }
+    }
+  }
+});
+
+// Per-user progress charts
+
+        new Chart(document.getElementById('prog_0'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[90.2, 87.5, 92.7, 94.3, 95.2, 88.5, 84.4, 90.9, 92.9, 81.8, 95.7, 97.0, 93.1, 93.1, 97.2],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-2319.5, -76.6, -136.6, -120.8, -2250.0, -98.1, -3128.1, -4554.5, -54.8, -4490.9, -2038.0, -24.2, -48.3, 3329.3, -90.1],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_1'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[72.2, 88.4, 71.4, 78.3, 86.0, 85.7, 85.7, 71.4, 85.7, 87.8, 91.1, 81.5, 83.3, 85.2, 86.5],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-5536.1, -62.8, -7150.0, -4356.5, -61.0, -67.9, -94.6, -7167.9, -87.5, -95.1, -127.7, -3487.0, -4172.9, -3707.4, -79.7],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_2'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[86.4, 72.7, 78.6, 81.0, 85.2, 89.5, 82.5, 85.3, 77.3, 83.9, 72.2, 62.5, 88.9, 91.2, 91.4],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-140.9, -9104.5, -112.5, -4754.8, -3705.6, -2622.4, -78.8, -2791.2, -147.7, -87.1, -213.9, -12481.2, -2783.3, -64.7, -91.4],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_3'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[81.8, 73.7, 62.5, 76.2, 81.0, 68.2, 78.3, 83.3, 83.3, 83.3, 65.2, 84.2, 82.8, 87.0, 88.2],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-115.9, -5289.5, -156.2, -145.2, -116.7, -4563.6, -4308.7, -4166.7, -95.8, -110.4, -4295.7, -128.9, -3474.1, -100.0, -2905.9],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_4'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[83.3, 81.0, 78.6, 91.2, 90.0, 82.1, 77.4, 81.8, 80.0, 77.4, 72.2, 84.6, 71.4, 70.6, 81.8],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-8354.2, -90.5, -7164.3, -2925.0, -110.0, -58.9, -3230.6, -90.9, -6676.7, -3090.3, -5550.0, -7703.8, -4788.1, -197.1, -4552.3],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_5'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[63.2, 84.2, 78.3, 81.6, 77.8, 78.6, 80.6, 85.7, 70.0, 77.3, 78.8, 74.2, 75.0, 88.6, 66.7],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-5257.9, -128.9, -4132.6, -96.1, -107.4, -98.2, -114.5, -85.7, -4982.5, -136.4, -115.2, -3175.8, -4145.8, -75.7, -33350.0],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_6'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[64.3, 87.5, 56.2, 76.9, 62.1, 72.2, 71.4, 72.7, 68.2, 70.0, 88.0, 81.2, 73.1, 50.0, 84.6],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-7171.4, -139.1, -6262.5, -3846.2, -182.8, -5536.1, -4726.2, -4534.1, -4309.1, -147.5, -3994.0, -117.2, -111.5, -16708.3, -7692.3],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_7'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[81.0, 70.0, 77.8, 81.5, 57.9, 78.3, 84.0, 77.8, 75.0, 88.2, 65.2, 75.0, 84.6, 56.2, 81.8],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-140.5, -4990.0, 4986.1, -3694.4, -5234.2, -126.1, -112.0, -5541.7, -5017.5, -5879.4, -147.8, -8333.3, -7703.8, -6259.4, -4543.2],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_8'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[81.5, 71.4, 81.0, 82.4, 75.0, 60.0, 66.7, 60.0, 69.6, 80.6, 68.4, 66.7, 77.3, 50.0, 71.4],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-129.6, -4781.0, -4759.5, -5876.5, -12493.8, -6666.7, -8308.3, -4997.5, -4163.0, -169.4, -5297.4, -5552.8, -4525.0, -16675.0, -252.4],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_9'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[75.0, 85.7, 73.7, 80.0, 73.3, 72.2, 57.1, 83.3, 75.0, 82.8, 75.0, 78.9, 80.0, 76.9, 70.6],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-4437.5, -86.9, -5273.7, -155.0, -3345.0, -122.2, -171.4, -125.0, -171.9, -158.6, -127.5, -5260.5, -6646.7, -167.3, -5905.9],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_10'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[70.6, 80.0, 77.4, 70.0, 80.0, 70.6, 75.0, 81.2, 77.8, 75.0, 80.0, 75.0, 73.1, 61.5, 70.8],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-5861.8, -173.3, -3217.7, -132.5, -6670.0, -5876.5, -5017.5, -6256.2, -3690.7, -5012.5, -5007.5, -4160.4, -3823.1, -3865.4, -4064.6],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_11'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[84.0, 80.0, 56.2, 72.2, 68.8, 75.0, 74.1, 80.0, 70.0, 68.2, 77.3, 53.8, 72.0, 82.9, 68.2],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-100.0, -135.0, -6253.1, -275.0, -6225.0, -4997.5, -124.1, -6673.3, -10005.0, -263.6, -4300.0, -7700.0, -4000.0, -91.5, -168.2],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_12'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[64.3, 70.0, 70.0, 75.0, 75.0, 57.1, 56.2, 71.4, 78.6, 75.0, 71.4, 81.2, 75.0, 81.2, 75.0],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-7171.4, -10000.0, -170.0, -6253.1, -25025.0, -7189.3, -6228.1, -102.4, -100.0, -4181.2, -14321.4, -6287.5, -8358.3, -6253.1, -157.5],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_13'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[76.9, 75.0, 76.9, 75.0, 52.6, 70.8, 73.7, 66.7, 66.7, 66.7, 54.5, 63.6, 76.0, 66.7, 75.0],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-7688.5, 4705.0, -3698.1, -8345.8, -5181.6, -147.9, -5252.6, -5563.9, -4754.8, -6670.0, -9100.0, -377.3, -3980.0, -5533.3, -4982.5],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+        new Chart(document.getElementById('prog_14'), {
+          type:'line',
+          data:{
+            labels:["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10", "G11", "G12", "G13", "G14", "G15"],
+            datasets:[
+              {label:'Good %',data:[81.2, 57.1, 69.2, 84.8, 63.2, 77.8, 82.4, 72.2, 80.8, 83.9, 81.2, 71.4, 81.8, 84.8, 75.0],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.12)',tension:0.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e'},
+              {label:'Avg Δcp',data:[-131.2, -7146.4, -7715.4, -80.3, -5276.3, -101.9, -70.6, -5533.3, -109.6, -101.6, -131.2, -7121.4, -9104.5, -124.2, -6287.5],borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.08)',tension:0.4,fill:false,pointRadius:4,pointBackgroundColor:'#f97316',yAxisID:'y2'}
+            ]
+          },
+          options:{
+            plugins:{legend:{labels:{color:'#cdd6f4',font:{size:11}}}},
+            scales:{
+              x:{ticks:{color:'#cdd6f4'},grid:{color:'rgba(205,214,244,0.08)'}},
+              y:{ticks:{color:'#22c55e',callback:v=>v+'%'},grid:{color:'rgba(205,214,244,0.08)'},title:{display:true,text:'Good %',color:'#22c55e'}},
+              y2:{position:'right',ticks:{color:'#f97316',callback:v=>v+' cp'},grid:{display:false},title:{display:true,text:'Avg Δcp',color:'#f97316'}}
+            }
+          }
+        });
+</script>
+</body>
+</html>

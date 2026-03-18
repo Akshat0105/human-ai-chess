@@ -15,6 +15,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    rating = db.Column(db.Integer, nullable=True)
     created_at = db.Column(
         db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
@@ -25,6 +26,7 @@ class User(UserMixin, db.Model):
         return {
             "id": self.id,
             "email": self.email,
+            "rating": self.rating,
             "createdAt": self.created_at.isoformat() + "Z",
         }
 

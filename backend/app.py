@@ -15,7 +15,7 @@ from models import db, User, Game
 
 # ---------------- CONFIG ----------------
 
-STOCKFISH_PATH = os.getenv("STOCKFISH_PATH") or "/opt/homebrew/bin/stockfish"
+STOCKFISH_PATH = os.getenv("STOCKFISH_PATH") or "/usr/games/stockfish"
 STOCKFISH_THREADS = int(os.getenv("STOCKFISH_THREADS", "2"))
 
 LOG_DIR = "logs"
@@ -191,6 +191,7 @@ def signup():
     data = request.get_json(force=True)
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
+    rating = data.get("rating")
 
     if not email or "@" not in email:
         return jsonify({"error": "Valid email is required"}), 400
@@ -202,7 +203,7 @@ def signup():
         return jsonify({"error": "An account with this email already exists"}), 409
 
     pw_hash = bcrypt.generate_password_hash(password).decode("utf-8")
-    user = User(email=email, password_hash=pw_hash)
+    user = User(email=email, password_hash=pw_hash, rating=rating)
     db.session.add(user)
     db.session.commit()
 

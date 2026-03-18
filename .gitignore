@@ -1,3 +1,5 @@
 venv/
 .env
 .vscode/
+simulate_games.py
+backend/__pycache__

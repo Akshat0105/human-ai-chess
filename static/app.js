@@ -590,10 +590,12 @@ function setAuthMode(mode) {
     submitBtn.textContent = "Log In";
     hintText.textContent = "Don't have an account?";
     switchBtn.textContent = "Sign Up";
+    document.getElementById("authRatingGroup").classList.add("hidden");
   } else {
     submitBtn.textContent = "Sign Up";
     hintText.textContent = "Already have an account?";
     switchBtn.textContent = "Log In";
+    document.getElementById("authRatingGroup").classList.remove("hidden");
   }
 
   document.getElementById("authError").textContent = "";
@@ -609,8 +611,16 @@ async function handleAuthSubmit(e) {
 
   const url = authMode === "login" ? API.login : API.signup;
 
+  const payload = { email, password };
+  if (authMode === "signup") {
+    const ratingInput = document.getElementById("authRating").value;
+    if (ratingInput) {
+      payload.rating = parseInt(ratingInput, 10);
+    }
+  }
+
   try {
-    const data = await postJSON(url, { email, password });
+    const data = await postJSON(url, payload);
     currentUser = data.user;
     showLandingScreen();
   } catch (err) {
